@@ -4,3 +4,5 @@ lib/
 pip-selfcheck.json
 praw.ini
 .#*
+*.jpg
+*.pyc
