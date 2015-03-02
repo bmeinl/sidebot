@@ -6,3 +6,4 @@ praw.ini
 .#*
 *.jpg
 *.pyc
+share/
