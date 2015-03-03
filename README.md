@@ -1,4 +1,5 @@
-# sidebot - A sidebar updating bot for /r/streetfighter
+# sidebot
+A sidebar updating bot for /r/streetfighter
 
 ## Installation steps:
     $ git clone https://github.com/bmeinl/sidebot
