@@ -22,7 +22,8 @@ def getTopStreams(game, count=7):
                    'viewers': s['viewers'],
                    'preview': s['preview']['template'],
                    'url': s['channel']['url'],
-                   'status': s['channel']['status'],
+                   'status': s['channel']['status'][:40],
+                   'highlighted': s['viewers'] >= 500
                } for s in streams
         ]
     except KeyError as e:
@@ -42,14 +43,18 @@ def makeSpritesheet(urls, width, height):
 
 
 def streams_to_markdown(streams):
-    md = [(u">>>#[{status}]({url}#profile-{i})\n"
-           u"###{viewers} watching @ {name}\n"
-           u"\n"
-           u">>[](//)\n"
-           u"\n").format(i=i, **stream)
-          for (i, stream) in enumerate(streams)
-    ]
-    return ''.join(md)
+    md = u''
+    for (i, stream) in enumerate(streams):
+        if stream['highlighted']:
+            viewers = u'###[{viewers} watching @ {name}](#maxcpm)\n'
+        else:
+            viewers = u'###{viewers} watching @ {name}\n'
+        md += (u">>>#[{status}]({url}#profile-{i})\n" + 
+               viewers + u'\n' +
+               u"\n" + 
+               u">>[](//)\n" + 
+               u"\n").format(i=i, **stream)
+    return md
 
 
 def login_twitter(configfile):
@@ -69,20 +74,26 @@ def get_good_tweets(api, count=7):
     return tweets
 
 
-def update_sidebar(subreddit='streetfightercss'):
+def update_sidebar(subreddit='streetfightercss', r=None):
     print "{}: Starting to update sidebar, try not to interrupt.".format(arrow.now().isoformat())
-    r = praw.Reddit(user_agent='crossplatform:sidebot:v0.1 (by /u/SweetScientist)')
-    r.login()
+    sys.stdout.flush()
+    if not r:
+        r = praw.Reddit(user_agent='crossplatform:sidebot:v0.1 (by /u/SweetScientist)')
+        r.login()
     settings = r.get_settings(subreddit)
     sub = r.get_subreddit(subreddit)
     sidebar = settings['description']
     stylesheet = r.get_stylesheet(sub)['stylesheet']
-    pat = r"(?<={}).*?(?={})".format(re.escape("[**Live Streams**](http://reddit.com/#heading)\n\n\n"),
-                                     re.escape("[**SFxTwitter**](http://reddit.com/#heading)"))
+    pat = r"(?<={}).*?(?={})".format(re.escape("[**Live Streams**](##heading)\n\n\n"),
+                                     re.escape("[**SFxTwitter**](##heading)"))
     streams = getTopStreams('Ultra Street Fighter IV')
     stream_md = streams_to_markdown(streams)
     updated_sidebar = re.sub(pat, stream_md, sidebar, flags=re.DOTALL|re.UNICODE)
-    makeSpritesheet([s['preview'] for s in streams], 45, 30)    
+    try:
+        makeSpritesheet([s['preview'] for s in streams], 45, 30)    
+    except:
+        print 'Something went wrong with spritesheet! # Streams: {}'.format(len(streams))
+        return
     r.upload_image(sub, 'twitchimages.jpg')
     try:
         # this raises captcha exception but it still works, *shrug*
@@ -90,13 +101,19 @@ def update_sidebar(subreddit='streetfightercss'):
     except praw.errors.InvalidCaptcha as e:
         pass
     # have to do this or it won't show new spritesheet
-    r.set_stylesheet(sub, stylesheet)
+    try:
+        r.set_stylesheet(sub, stylesheet)
+    except praw.requests.exceptions.HTTPError as e:
+        print "Couldn't set stylesheet (HTTPError)!"
     print "{}: Updated sidebar.\n\n".format(arrow.now().isoformat())
+    sys.stdout.flush()
 
 
 if __name__ == '__main__':
     import time
+    r = praw.Reddit(user_agent='crossplatform:sidebot:v0.1 (by /u/SweetScientist)')
+    r.login()
     while True:
-        update_sidebar('streetfightercss')
+        update_sidebar('streetfighter', r)
         time.sleep(60)
 
