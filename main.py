@@ -11,6 +11,10 @@ import twitter
 import sys
 
 
+def escape_md(s):
+    return re.sub(r'([*\[\]()>~^])', r'\\\1', s)
+
+
 def getTopStreams(game, count=7):
     get_params = urlencode({'game': game})
     req = urllib.Request('https://api.twitch.tv/kraken/streams?' + get_params,
@@ -22,7 +26,7 @@ def getTopStreams(game, count=7):
                    'viewers': s['viewers'],
                    'preview': s['preview']['template'],
                    'url': s['channel']['url'],
-                   'status': s['channel']['status'][:40],
+                   'status': escape_md(s['channel']['status'][:40]),
                    'highlighted': s['viewers'] >= 500
                } for s in streams
         ]
@@ -85,7 +89,7 @@ def update_sidebar(subreddit='streetfightercss', r=None):
     sidebar = settings['description']
     stylesheet = r.get_stylesheet(sub)['stylesheet']
     pat = r"(?<={}).*?(?={})".format(re.escape("[**Live Streams**](##heading)\n\n\n"),
-                                     re.escape("[**SFxTwitter**](##heading)"))
+                                     re.escape("[**SFxTwitter (Broken atm: fix eta Friday)**](##heading)"))
     streams = getTopStreams('Ultra Street Fighter IV')
     stream_md = streams_to_markdown(streams)
     updated_sidebar = re.sub(pat, stream_md, sidebar, flags=re.DOTALL|re.UNICODE)
