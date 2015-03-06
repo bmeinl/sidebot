@@ -31,7 +31,6 @@ def getTopStreams(game, count=7):
                } for s in streams
         ]
     except KeyError as e:
-        print streams
         return []
 
 
