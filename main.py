@@ -146,5 +146,5 @@ if __name__ == '__main__':
     r.login()
     t = login_twitter('twitter.conf')
     while True:
-        update_sidebar('streetfightercss', r, t)
+        update_sidebar('streetfighter', r, t)
         time.sleep(60)
