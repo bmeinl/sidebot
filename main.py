@@ -81,9 +81,9 @@ def get_good_tweets(api, count=5):
 def tweets_to_markdown(tweets):
     md = u''
     for (i, tweet) in enumerate(tweets):
-        md += u'>>>[~~{text}~~ ~~PIC~~ ~~{name}~~ ~~{when}~~]({url}#twt-{i})\n\n'.format(
+        md += u'>>>[~~{text}~~ ~~P~~ ~~{name}~~ ~~{when}~~]({url}#twt-{i})\n\n'.format(
             i=i,
-            text = escape_md(tweet['text'].strip()),
+            text = escape_md(tweet['text'].strip()).replace('\n', ''),
             name = escape_md(tweet['user']['name'].strip()),
             when = arrow.get(tweet['created_at'], 'ddd MMM DD HH:mm:ss Z YYYY').humanize(),
             url = 'http://twitter.com/{}/status/{}'.format(tweet['user']['screen_name'], tweet['id']))
@@ -101,7 +101,7 @@ def update_sidebar(subreddit, r, t):
     
     # update streams
     pat = r"(?<={}).*?(?={})".format(re.escape("[**Live Streams**](##heading)\n\n\n"),
-                                     re.escape("[**SFxTwitter**](##heading)"))
+                                     re.escape("[**SFxTwitter** - 10 Favorites + RT's](##heading)"))
     streams = getTopStreams('Ultra Street Fighter IV')
     stream_md = streams_to_markdown(streams)
     if stream_md:
@@ -114,7 +114,7 @@ def update_sidebar(subreddit, r, t):
         r.upload_image(sub, 'twitchimages.jpg')
 
     # update tweets
-    pat = r"(?<={}).*?(?={})".format(re.escape("[**SFxTwitter**](##heading)\n\n"),
+    pat = r"(?<={}).*?(?={})".format(re.escape("[**SFxTwitter** - 10 Favorites + RT's](##heading)\n\n"),
                                      re.escape("[**Subreddit Rules**](##heading)"))
     
     tweets = get_good_tweets(t)
