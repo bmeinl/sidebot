@@ -102,7 +102,11 @@ def update_sidebar(subreddit, r, t):
     # update streams
     pat = r"(?<={}).*?(?={})".format(re.escape("[**Live Streams**](##heading)\n\n\n"),
                                      re.escape("[**SFxTwitter** - 10 Favorites + RT's](##heading)"))
-    streams = getTopStreams('Ultra Street Fighter IV')
+    try:
+        streams = getTopStreams('Ultra Street Fighter IV')
+    except urllib.HTTPError:
+        print ('HTTPError caught! Going on...')
+        streams = []
     stream_md = streams_to_markdown(streams)
     if stream_md:
         updated_sidebar = re.sub(pat, stream_md, sidebar, flags=re.DOTALL|re.UNICODE)
@@ -119,9 +123,7 @@ def update_sidebar(subreddit, r, t):
     
     tweets = get_good_tweets(t)
     tweets_md = tweets_to_markdown(tweets)
-    with open('tweets_md', 'w') as f: print >>f, tweets_md.encode('utf-8')
     finished_sidebar = re.sub(pat, tweets_md, updated_sidebar, flags=re.DOTALL|re.UNICODE)
-    with open('finished', 'w') as f: print >>f, finished_sidebar.encode('utf-8')
     #if tweets:
     #    makeSpritesheet([t['user']['profile_image_url'] for t in tweets], 30, 30, 'twitterimages.jpg')
     #    r.upload_image(sub, 'twitterimages.jpg')
