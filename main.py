@@ -11,6 +11,24 @@ import sys
 from TwitterAPI import TwitterAPI
 
 
+live_streams_header = "[**Live Streams**](##heading)\n\n\n"
+tweets_header = "[**SFxTwitter** - 10 Favorites + RT's](##heading)\n\n"
+below_tweets = "[**Welcome to /r/StreetFighter!**](##heading)"
+
+
+def shorten_url(url):
+    post_url = 'https://www.googleapis.com/urlshortener/v1/url?key=AIzaSyBHndWCBh_Er1wHmEnw0Lc7WrrIR0pbhaQ'
+    postdata = {'longUrl': url}
+    headers = {'Content-Type': 'application/json'}
+    req = urllib.Request(
+        post_url,
+        json.dumps(postdata),
+        headers
+    )
+    ret = urllib.urlopen(req).read()
+    return json.loads(ret)['id']
+
+
 def escape_md(s):
     return re.sub(r'([*\\[\]()>~^#])', r'\\\1', s)
 
@@ -25,7 +43,7 @@ def getTopStreams(game, count=7):
         return [ { 'name': s['channel']['name'],
                    'viewers': s['viewers'],
                    'preview': s['preview']['template'],
-                   'url': s['channel']['url'],
+                   'url': shorten_url(s['channel']['url']),
                    'status': escape_md(s['channel']['status'][:40]),
                    'highlighted': s['viewers'] >= 500
                } for s in streams
@@ -86,7 +104,8 @@ def tweets_to_markdown(tweets):
             text = escape_md(tweet['text'].strip()).replace('\n', ''),
             name = escape_md(tweet['user']['name'].strip()),
             when = arrow.get(tweet['created_at'], 'ddd MMM DD HH:mm:ss Z YYYY').humanize(),
-            url = 'http://twitter.com/{}/status/{}'.format(tweet['user']['screen_name'], tweet['id']))
+            url = shorten_url('http://twitter.com/{}/status/{}'.format(tweet['user']['screen_name'], tweet['id']))
+        )
         md += u'>>[](//)\n\n'
     return md
 
@@ -100,8 +119,8 @@ def update_sidebar(subreddit, r, t):
     stylesheet = r.get_stylesheet(sub)['stylesheet']
     
     # update streams
-    pat = r"(?<={}).*?(?={})".format(re.escape("[**Live Streams**](##heading)\n\n\n"),
-                                     re.escape("[**SFxTwitter** - 10 Favorites + RT's](##heading)"))
+    pat = r"(?<={}).*?(?={})".format(re.escape(live_streams_header),
+                                     re.escape(tweets_header))
     try:
         streams = getTopStreams('Ultra Street Fighter IV')
     except urllib.HTTPError:
@@ -111,15 +130,15 @@ def update_sidebar(subreddit, r, t):
     if stream_md:
         updated_sidebar = re.sub(pat, stream_md, sidebar, flags=re.DOTALL|re.UNICODE)
     else:
-        print "Twitch didn't give us shat."
+        print "Twitch didn't give us anything."
         updated_sidebar = sidebar
     if streams:
         makeSpritesheet([s['preview'] for s in streams], 45, 30, 'twitchimages.jpg')    
         r.upload_image(sub, 'twitchimages.jpg')
 
     # update tweets
-    pat = r"(?<={}).*?(?={})".format(re.escape("[**SFxTwitter** - 10 Favorites + RT's](##heading)\n\n"),
-                                     re.escape("[**Subreddit Rules**](##heading)"))
+    pat = r"(?<={}).*?(?={})".format(re.escape(tweets_header),
+                                     re.escape(below_tweets))
     
     tweets = get_good_tweets(t)
     tweets_md = tweets_to_markdown(tweets)
