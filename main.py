@@ -85,22 +85,25 @@ def login_twitter(configfile):
     api = TwitterAPI(config[0], config[1], config[2], config[3])
     return api
 
-def get_good_tweets(api, keywords, count=5):
+def get_good_tweets(api, keywords, tournament_mode, count=5):
     n = 0
     good_tweets = []
     r = TwitterRestPager(api, 'lists/statuses',
                               {'slug': 'fgc', 'owner_screen_name': 'soulsynapse',
-                               'count': 1000, 'include_entities': False, 'include_rts': False})
+                               'count': 1000, 'include_entities': False, 'include_rts': tournament_mode})
     for t in r.get_iterator():
         n += 1
         if len(good_tweets) >= count:
             break
         if 'text' in t and t['retweet_count'] + t['favorite_count'] >= 10:
-            for k in keywords:
-                if k and re.search(r'\b' + k + r'\b', t['text'].lower().replace('#', '')):
-                    print k
-                    good_tweets.append(t)
-                    break
+            if tournament_mode:
+                good_tweets.append(t)
+            else:
+                for k in keywords:
+                    if k and re.search(r'\b' + k + r'\b', t['text'].lower().replace('#', '')):
+                        print k
+                        good_tweets.append(t)
+                        break
     print 'Took me {} tweets to find {} good ones!'.format(n, len(good_tweets))
     return good_tweets
 
@@ -119,7 +122,7 @@ def tweets_to_markdown(tweets):
     return md
 
 
-def update_sidebar(subreddit, r, t, keywords):
+def update_sidebar(subreddit, r, t, keywords, tournament_mode):
     print "{}: Starting to update sidebar, try not to interrupt.".format(arrow.now().isoformat())
     sys.stdout.flush()
     settings = r.get_settings(subreddit)
@@ -149,7 +152,7 @@ def update_sidebar(subreddit, r, t, keywords):
     pat = r"(?<={}).*?(?={})".format(re.escape(tweets_header),
                                      re.escape(below_tweets))
     
-    tweets = get_good_tweets(t, keywords)
+    tweets = get_good_tweets(t, keywords, tournament_mode)
     tweets_md = tweets_to_markdown(tweets)
     finished_sidebar = re.sub(pat, tweets_md, updated_sidebar, flags=re.DOTALL|re.UNICODE)
     #if tweets:
@@ -171,6 +174,11 @@ def update_sidebar(subreddit, r, t, keywords):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2 and sys.argv[1] == 't':
+        print "Starting in tournament mode!"
+        tournament_mode = True
+    else:
+        tournament_mode = False
     import time
     r = praw.Reddit(user_agent='crossplatform:sidebot:v0.1 (by /u/SweetScientist)')
     r.login()
@@ -179,5 +187,5 @@ if __name__ == '__main__':
         keywords = f.readlines()
         keywords = [f.strip().lower() for f in keywords]
     while True:
-        update_sidebar('streetfighter', r, t, keywords)
+        update_sidebar('streetfighter', r, t, keywords, tournament_mode)
         time.sleep(60)
