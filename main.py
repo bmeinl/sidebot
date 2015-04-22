@@ -1,3 +1,4 @@
+import oauth2 as oauthpls
 import praw
 import urllib2 as urllib
 from urllib import urlencode
@@ -9,6 +10,7 @@ import io
 import re
 import sys
 from TwitterAPI import TwitterAPI, TwitterRestPager
+import twitter
 
 
 live_streams_header = "[**Live Streams**](##heading)\n\n\n"
@@ -83,7 +85,8 @@ def login_twitter(configfile):
     with open(configfile) as f:
         config = [line.strip('\r\n') for line in f]
     api = TwitterAPI(config[0], config[1], config[2], config[3])
-    return api
+    api2 = twitter.Api(config[0], config[1], config[2], config[3])
+    return (api, api2)
 
 def get_good_tweets(api, keywords, tournament_mode, count=5):
     n = 0
@@ -101,7 +104,6 @@ def get_good_tweets(api, keywords, tournament_mode, count=5):
             else:
                 for k in keywords:
                     if k and re.search(r'\b' + k + r'\b', t['text'].lower().replace('#', '')):
-                        print k
                         good_tweets.append(t)
                         break
     print 'Took me {} tweets to find {} good ones!'.format(n, len(good_tweets))
@@ -121,8 +123,8 @@ def tweets_to_markdown(tweets):
         md += u'>>[](//)\n\n'
     return md
 
-
-def update_sidebar(subreddit, r, t, keywords, tournament_mode):
+seen_tweets = []
+def update_sidebar(subreddit, r, t, keywords, tournament_mode, t2):
     print "{}: Starting to update sidebar, try not to interrupt.".format(arrow.now().isoformat())
     sys.stdout.flush()
     settings = r.get_settings(subreddit)
@@ -163,15 +165,22 @@ def update_sidebar(subreddit, r, t, keywords, tournament_mode):
         # this raises captcha exception but it still works, *shrug*
         r.update_settings(sub, description=finished_sidebar, hide_ads=None)
     except praw.errors.InvalidCaptcha as e:
-        pass
     # have to do this or it won't show new spritesheet
     try:
         r.set_stylesheet(sub, stylesheet)
     except praw.requests.exceptions.HTTPError as e:
         print "Couldn't set stylesheet (HTTPError)!"
-    print "{}: Updated sidebar.\n\n".format(arrow.now().isoformat())
+    print "{}: Updated sidebar.".format(arrow.now().isoformat())
     sys.stdout.flush()
 
+    # forward good tweets to subreddit Twitter account
+    for tweet in tweets:
+        if tweet['id'] not in seen_tweets:
+            seen_tweets.append(tweet['id'])
+            t2.PostRetweet(tweet['id'])
+            print "Tweeted: " + tweet['text'][:50] + "..."
+            
+    print "\n\n"
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 't':
@@ -182,10 +191,10 @@ if __name__ == '__main__':
     import time
     r = praw.Reddit(user_agent='crossplatform:sidebot:v0.1 (by /u/SweetScientist)')
     r.login()
-    t = login_twitter('twitter.conf')
+    t,t2 = login_twitter('twitter.conf')
     with open('keywords.txt') as f:
         keywords = f.readlines()
         keywords = [f.strip().lower() for f in keywords]
     while True:
-        update_sidebar('streetfighter', r, t, keywords, tournament_mode)
+        update_sidebar('streetfighter', r, t, keywords, tournament_mode, t2)
         time.sleep(60)
