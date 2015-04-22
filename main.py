@@ -177,7 +177,10 @@ def update_sidebar(subreddit, r, t, keywords, tournament_mode, t2):
     for tweet in tweets:
         if tweet['id'] not in seen_tweets:
             seen_tweets.append(tweet['id'])
-            t2.PostRetweet(tweet['id'])
+            try:
+                t2.PostRetweet(tweet['id'])
+            except twitter.error.TwitterError:
+                pass
             print "Tweeted: " + tweet['text'][:50] + "..."
             
     print "\n\n"
