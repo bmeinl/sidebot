@@ -1,4 +1,3 @@
-import oauth2 as oauthpls
 import praw
 import urllib2 as urllib
 from urllib import urlencode
