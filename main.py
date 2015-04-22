@@ -157,14 +157,15 @@ def update_sidebar(subreddit, r, t, keywords, tournament_mode, t2):
     tweets = get_good_tweets(t, keywords, tournament_mode)
     tweets_md = tweets_to_markdown(tweets)
     finished_sidebar = re.sub(pat, tweets_md, updated_sidebar, flags=re.DOTALL|re.UNICODE)
-    #if tweets:
-    #    makeSpritesheet([t['user']['profile_image_url'] for t in tweets], 30, 30, 'twitterimages.jpg')
-    #    r.upload_image(sub, 'twitterimages.jpg')
+    if tweets:
+        makeSpritesheet([t['user']['profile_image_url'] for t in tweets], 30, 30, 'twitterimages.jpg')
+        r.upload_image(sub, 'twitterimages.jpg')
 
     try:
         # this raises captcha exception but it still works, *shrug*
         r.update_settings(sub, description=finished_sidebar, hide_ads=None)
     except praw.errors.InvalidCaptcha as e:
+        pass
     # have to do this or it won't show new spritesheet
     try:
         r.set_stylesheet(sub, stylesheet)
